@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Daily Tracker</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #e0f2e9 0%, #d7e7f5 100%);
+            min-height: 100vh;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type="range"] {
+            height: 4px;
+            border-radius: 2px;
+            background: #e0e7ff;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4ade80;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #22c55e;
+        }
+
+        .radio-button {
+            display: none;
+        }
+
+        .radio-label {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .radio-button:checked + .radio-label {
+            border-color: #4ade80;
+            background: #f0fdf4;
+            color: #16a34a;
+        }
+
+        .button-primary {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            transition: transform 0.2s ease;
+        }
+
+        .button-primary:hover {
+            transform: translateY(-1px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .chart-container {
+            position: relative;
+            margin: 20px 0;
+            height: 300px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4ade80;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100%); }
+            to { transform: translate(-50%, 0); }
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4ade80;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #22c55e;
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="max-w-4xl mx-auto space-y-6">
+        <!-- Daily Entry Form -->
+        <div class="card p-6">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">Daily Entry</h2>
+            <form id="entryForm" class="space-y-6">
+                <!-- Date -->
+                <div>
+                    <label class="block font-medium mb-2 text-gray-700">Date</label>
+                    <input type="date" id="date" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" required>
+                </div>
+
+                <!-- Sleep -->
+                <div>
+                    <label class="block font-medium mb-2 text-gray-700">Sleep (hours)</label>
+                    <input type="number" id="sleep" min="0" max="24" step="0.5" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500" required>
+                </div>
+
+                <!-- Energy -->
+                <div>
+                    <label class="block font-medium mb-2 text-gray-700">Energy Level</label>
+                    <input type="range" id="energy" min="1" max="5" class="w-full" required>
+                    <div class="flex justify-between text-sm text-gray-600 mt-1">
+                        <span>Very Low</span>
+                        <span>Low</span>
+                        <span>Normal</span>
+                        <span>High</span>
+                        <span>Very High</span>
+                    </div>
+                </div>
+
+                <!-- Mood -->
+                <div>
+                    <label class="block font-medium mb-2 text-gray-700">Mood Level</label>
+                    <input type="range" id="mood" min="1" max="5" class="w-full" required>
+                    <div class="flex justify-between text-sm text-gray-600 mt-1">
+                        <span>Very Low</span>
+                        <span>Low</span>
+                        <span>Normal</span>
+                        <span>High</span>
+                        <span>Very High</span>
+                    </div>
+                </div>
+
+                <!-- Work -->
+                <div>
+                    <label class="flex items-center gap-2 cursor-pointer mb-4">
+                        <input type="checkbox" id="hasWork" class="w-4 h-4 text-green-600">
+                        <span class="font-medium text-gray-700">Work Shift</span>
+                    </label>
+                    
+                    <div id="workSection" class="hidden space-y-4">
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <input type="radio" id="early" name="shiftType" value="early" class="radio-button" checked>
+                                <label for="early" class="radio-label block text-center">Early</label>
+                            </div>
+                            <div>
+                                <input type="radio" id="mid" name="shiftType" value="mid" class="radio-button">
+                                <label for="mid" class="radio-label block text-center">Mid</label>
+                            </div>
+                            <div>
+                                <input type="radio" id="late" name="shiftType" value="late" class="radio-button">
+                                <label for="late" class="radio-label block text-center">Late</label>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1 text-gray-700">Hours</label>
+                            <input type="number" id="shiftDuration" min="1" max="24" step="0.5" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activities -->
+                <div>
+                    <h3 class="font-medium mb-4 text-gray-700">Activities</h3>
+                    <div class="grid grid-cols-3 gap-3">
+                        <input type="text" id="activityName" placeholder="Activity name" class="col-span-2 p-3 border rounded-lg focus:ring-2 focus:ring-green-500">
+                        <input type="number" id="activityDuration" placeholder="Hours" step="0.5" min="0.5" class="p-3 border rounded-lg focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <button type="button" id="addActivity" class="mt-3 button-primary text-white px-4 py-2 rounded-lg">
+                        Add Activity
+                    </button>
+                    <div id="activitiesList" class="mt-3 space-y-2"></div>
+                </div>
+
+                <!-- Rest -->
+                <div>
+                    <h3 class="font-medium mb-4 text-gray-700">Rest</h3>
+                    <div class="grid grid-cols-3 gap-3">
+                        <input type="text" id="restName" placeholder="Rest activity" class="col-span-2 p-3 border rounded-lg focus:ring-2 focus:ring-green-500">
+                        <input type="number" id="restDuration" placeholder="Hours" step="0.5" min="0.5" class="p-3 border rounded-lg focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <button type="button" id="addRest" class="mt-3 button-primary text-white px-4 py-2 rounded-lg">
+                        Add Rest
+                    </button>
+                    <div id="restList" class="mt-3 space-y-2"></div>
+                </div>
+
+                <button type="submit" class="w-full button-primary text-white px-6 py-3 rounded-lg font-medium">
+                    Save Entry
+                </button>
+            </form>
+        </div>
+
+        <!-- Statistics -->
+        <div class="card p-6">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">Statistics</h2>
+            
+            <!-- Overall Stats -->
+            <div class="stats-grid mb-8">
+                <div class="stat-card">
+                    <h3 class="text-sm text-gray-600">Average Sleep</h3>
+                    <div id="avgSleep" class="text-2xl font-bold text-green-600">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3 class="text-sm text-gray-600">Average Energy</h3>
+                    <div id="avgEnergy" class="text-2xl font-bold text-green-600">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3 class="text-sm text-gray-600">Average Mood</h3>
+                    <div id="avgMood" class="text-2xl font-bold text-green-600">-</div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="space-y-8">
+                <div class="chart-container">
+                    <canvas id="trendsChart"></canvas>
+                </div>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="chart-container">
+                        <canvas id="activitiesChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="restChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div class="card p-6">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">History</h2>
+            <div id="previousEntries" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize data
+        let entries = [];
+        let activities = [];
+        let restActivities = [];
+
+        try {
+            entries = JSON.parse(localStorage.getItem('entries') || '[]');
+        } catch (e) {
+            console.log('Storage not available');
+        }
+
+        // Set today's date
+        document.getElementById('date').valueAsDate = new Date();
+
+        // Show/hide work section
+        document.getElementById('hasWork').addEventListener('change', (e) => {
+            document.getElementById('workSection').style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        // Add activity
+        document.getElementById('addActivity').addEventListener('click', () => {
+            const name = document.getElementById('activityName').value;
+            const duration = document.getElementById('activityDuration').value;
+            if (name && duration) {
+                activities.push({ name, duration: parseFloat(duration) });
+                updateActivitiesList();
+                document.getElementById('activityName').value = '';
+                document.getElementById('activityDuration').value = '';
+            }
+        });
+
+        // Add rest
+        document.getElementById('addRest').addEventListener('click', () => {
+            const name = document.getElementById('restName').value;
+            const duration = document.getElementById('restDuration').value;
+            if (name && duration) {
+                restActivities.push({ name, duration: parseFloat(duration) });
+                updateRestList();
+                document.getElementById('restName').value = '';
+                document.getElementById('restDuration').value = '';
+            }
+        });
+
+        // Update activities list
+        function updateActivitiesList() {
+            const list = document.getElementById('activitiesList');
+            list.innerHTML = activities.map((activity, index) => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span>${activity.name} (${activity.duration}h)</span>
+                    <button onclick="removeActivity(${index})" class="text-red-500 hover:text-red-700 px-2">&times;</button>
+                </div>
+            `).join('');
+        }
+
+        // Update rest list
+        function updateRestList() {
+            const list = document.getElementById('restList');
+            list.innerHTML = restActivities.map((rest, index) => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span>${rest.name} (${rest.duration}h)</span>
+                    <button onclick="removeRest(${index})" class="text-red-500 hover:text-red-700 px-2">&times;</button>
+                </div>
+            `).join('');
+        }
+
+        // Remove activity
+        function removeActivity(index) {
+            activities.splice(index, 1);
+            updateActivitiesList();
+        }
+
+        // Remove rest
+        function removeRest(index) {
+            restActivities.splice(index, 1);
+            updateRestList();
+        }
+
+        // Show toast notification
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className
