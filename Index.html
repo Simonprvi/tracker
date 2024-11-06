@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Tracker</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #e0f2e9 0%, #d7e7f5 100%);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: transform 0.3s ease;
+            margin-bottom: 1rem;
+            padding: 1rem;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        input[type="range"] {
+            height: 4px;
+            background: #e0e7ff;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4ade80;
+            cursor: pointer;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4ade80;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="max-w-4xl mx-auto">
+        <!-- Entry Form -->
+        <form id="entryForm" class="card">
+            <h2 class="text-2xl font-bold mb-4">Daily Entry</h2>
+            
+            <div class="mb-4">
+                <label class="block font-medium mb-2">Date</label>
+                <input type="date" id="date" class="w-full p-2 border rounded" required>
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-medium mb-2">Sleep Hours</label>
+                <input type="number" id="sleep" min="0" max="24" step="0.5" class="w-full p-2 border rounded" required>
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-medium mb-2">Energy (1-5)</label>
+                <input type="range" id="energy" min="1" max="5" class="w-full" required>
+                <div class="flex justify-between text-sm">
+                    <span>Low</span>
+                    <span>High</span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-medium mb-2">Mood (1-5)</label>
+                <input type="range" id="mood" min="1" max="5" class="w-full" required>
+                <div class="flex justify-between text-sm">
+                    <span>Low</span>
+                    <span>High</span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="flex items-center mb-2">
+                    <input type="checkbox" id="hasWork" class="mr-2">
+                    <span class="font-medium">Work</span>
+                </label>
+                
+                <div id="workSection" class="hidden">
+                    <div class="grid grid-cols-3 gap-2 mb-2">
+                        <label class="flex items-center">
+                            <input type="radio" name="shiftType" value="early" checked class="mr-2">
+                            <span>Early</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="shiftType" value="mid" class="mr-2">
+                            <span>Mid</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="shiftType" value="late" class="mr-2">
+                            <span>Late</span>
+                        </label>
+                    </div>
+                    <input type="number" id="shiftDuration" placeholder="Hours" min="1" max="24" step="0.5" class="w-full p-2 border rounded">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h3 class="font-medium mb-2">Activities</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    <input type="text" id="activityName" placeholder="Activity" class="col-span-2 p-2 border rounded">
+                    <input type="number" id="activityDuration" placeholder="Hours" step="0.5" min="0.5" class="p-2 border rounded">
+                </div>
+                <button type="button" id="addActivity" class="btn mt-2">Add Activity</button>
+                <div id="activitiesList" class="mt-2 space-y-2"></div>
+            </div>
+
+            <div class="mb-4">
+                <h3 class="font-medium mb-2">Rest</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    <input type="text" id="restName" placeholder="Rest activity" class="col-span-2 p-2 border rounded">
+                    <input type="number" id="restDuration" placeholder="Hours" step="0.5" min="0.5" class="p-2 border rounded">
+                </div>
+                <button type="button" id="addRest" class="btn mt-2">Add Rest</button>
+                <div id="restList" class="mt-2 space-y-2"></div>
+            </div>
+
+            <button type="submit" class="w-full btn">Save Entry</button>
+        </form>
+
+        <!-- Stats -->
+        <div class="card">
+            <h2 class="text-2xl font-bold mb-4">Stats</h2>
+            <div class="h-64 mb-4">
+                <canvas id="trendsChart"></canvas>
+            </div>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="h-64">
+                    <canvas id="activitiesChart"></canvas>
+                </div>
+                <div class="h-64">
+                    <canvas id="restChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div class="card">
+            <h2 class="text-2xl font-bold mb-4">History</h2>
+            <div id="previousEntries" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <script>
+        let entries = [];
+        let activities = [];
+        let restActivities = [];
+
+        // Load saved entries
+        try {
+            entries = JSON.parse(localStorage.getItem('entries') || '[]');
+        } catch (e) {
+            console.log('Storage not available');
+        }
+
+        // Set today's date
+        document.getElementById('date').valueAsDate = new Date();
+
+        // Show/hide work section
+        document.getElementById('hasWork').addEventListener('change', (e) => {
+            document.getElementById('workSection').style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        // Add activity
+        document.getElementById('addActivity').addEventListener('click', () => {
+            const name = document.getElementById('activityName').value;
+            const duration = document.getElementById('activityDuration').value;
+            if (name && duration) {
+                activities.push({ name, duration: parseFloat(duration) });
+                updateActivitiesList();
+                document.getElementById('activityName').value = '';
+                document.getElementById('activityDuration').value = '';
+            }
+        });
+
+        // Add rest
+        document.getElementById('addRest').addEventListener('click', () => {
+            const name = document.getElementById('restName').value;
+            const duration = document.getElementById('restDuration').value;
+            if (name && duration) {
+                restActivities.push({ name, duration: parseFloat(duration) });
+                updateRestList();
+                document.getElementById('restName').value = '';
+                document.getElementById('restDuration').value = '';
+            }
+        });
+
+        // Update activities list
+        function updateActivitiesList() {
+            const list = document.getElementById('activitiesList');
+            list.innerHTML = activities.map((activity, index) => `
+                <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span>${activity.name} (${activity.duration}h)</span>
+                    <button onclick="removeActivity(${index})" class="text-red-500">&times;</button>
+                </div>
+            `).join('');
+        }
+
+        // Update rest list
+        function updateRestList() {
+            const list = document.getElementById('restList');
+            list.innerHTML = restActivities.map((rest, index) => `
+                <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span>${rest.name} (${rest.duration}h)</span>
+                    <button onclick="removeRest(${index})" class="text-red-500">&times;</button>
+                </div>
+            `).join('');
+        }
+
+        // Remove activity
+        function removeActivity(index) {
+            activities.splice(index, 1);
+            updateActivitiesList();
+        }
+
+        // Remove rest
+        function removeRest(index) {
+            restActivities.splice(index, 1);
+            updateRestList();
+        }
+
+        // Show notification
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Handle form submission
+        document.getElementById('entryForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const entry = {
+                date: document.getElementById('date').value,
+                sleep: parseFloat(document.getElementById('sleep').value),
+                energy: parseInt(document.getElementById('energy').value),
+                mood: parseInt(document.getElementById('mood').value),
+                hasWork: document.getElementById('hasWork').checked,
+                shiftType: document.querySelector('input[name="shiftType"]:checked')?.value,
+                shiftDuration: document.getElementById('hasWork').checked ? 
+                    parseFloat(document.getElementById('shiftDuration').value) : null,
+                activities: [...activities],
+                rest: [...restActivities]
+            };
+
+            entries.push(entry);
+            try {
+                localStorage.setItem('entries', JSON.stringify(entries));
+            } catch (e) {
+                console.log('Storage not available');
+            }
+            
+            // Reset form
+            activities = [];
+            restActivities = [];
+            updateActivitiesList();
+            updateRestList();
+            document.getElementById('hasWork').checked = false;
+            document.getElementById('workSection').style.display = 'none';
+            e.target.reset();
+            document.getElementById('date').valueAsDate = new Date();
+            
+            updateCharts();
+            displayEntries();
+            showToast('Entry saved!');
+        });
+
+        // Display entries
+        function displayEntries() {
+            const container = document.getElementById('previousEntries');
+            container.innerHTML = entries.slice().reverse().map((entry, index) => `
+                <div class="p-4 border rounded">
+                    <div class="font-bold">${entry.date}</div>
+                    <div class="grid grid-cols-3 gap-2 mt-2">
+                        <div>Energy: ${entry.energy}/5</div>
+                        <div>Mood: ${entry.mood}/5</div>
+                        <div>Sleep: ${entry.sleep}h</div>
+                    </div>
+                    ${entry.hasWork ? `
+                        <div class="mt-2">
+                            <strong>Work:</strong> ${entry.shiftType} shift (${entry.shiftDuration}h)
+                        </div>
+                    ` : ''}
+                    ${entry.activities.length ? `
+                        <div class="mt-2">
+                            <strong>Activities:</strong>
+                            <ul class="list-disc ml-5">
+                                ${entry.activities.map(a => `<li>${a.name} (${a.duration}h)</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    ${entry.rest.length ? `
+                        <div class="mt-2">
+                            <strong>Rest:</strong>
+                            <ul class="list-disc ml-5">
+                                ${entry.rest.map(r => `<li>${r.name} (${r.duration}h)</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Update charts
+        function updateCharts() {
+            const dates = entries.map(e => e.date);
+            
+            // Trends chart
+            const trendsData = {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'Energy',
+                        data: entries.map(e => e.energy),
+                        borderColor: '#4ade80',
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Mood',
+                        data: entries.map(e => e.mood),
+                        borderColor: '#60a5fa',
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Sleep',
+                        data: entries.map(e => e.sleep),
+                        borderColor: '#f472b6',
+                        tension: 0.1
+                    }
+                ]
+            };
+
+            if (window.trendsChart) window.trendsChart.destroy();
+            window.trendsChart = new Chart(document.getElementById('trendsChart'), {
+                type: 'line',
+                data: trendsData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Activities chart
+            const activityTotals = {};
+            entries.forEach(entry => {
+                entry.activities.forEach(a => {
+                    activityTotals[a.name] = (activityTotals[a.name] || 0) + a.duration;
+                });
+            });
+
+            if (window.activitiesChart) window.activitiesChart.destroy();
+            window.activitiesChart = new Chart(document.getElementById('activitiesChart'), {
+                type: 'pie',
+                data: {
+                    labels
